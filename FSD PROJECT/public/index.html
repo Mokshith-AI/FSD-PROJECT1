@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EventSphere - Luxury Ticketing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* -- STYLES SAME AS BEFORE -- */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{background:#0f0f0f;color:#f5f5f5;}
+nav{display:flex;justify-content:space-between;align-items:center;padding:20px 8%;background:rgba(255,215,0,0.08);backdrop-filter:blur(10px);}
+nav h2{color:#FFD700;}
+nav input{padding:10px 20px;border-radius:30px;border:none;width:300px;background:#1a1a1a;color:white;}
+.auth-box{text-align:center;margin:30px;}
+.auth-box input{padding:10px 15px;margin:5px;border-radius:20px;border:none;background:#1a1a1a;color:white;}
+.auth-box button{padding:10px 15px;margin:5px;width:auto;}
+#welcome{text-align:center;color:#FFD700;margin-top:10px;font-weight:600;}
+.hero{text-align:center;padding:60px 8%;}
+.hero h1{font-size:48px;background:linear-gradient(45deg,#C9A227,#FFD700);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.hero p{margin-top:20px;opacity:0.7;}
+.filters{display:flex;justify-content:center;gap:15px;padding:20px;flex-wrap:wrap;}
+.filter-btn{padding:8px 18px;border-radius:20px;background:rgba(255,215,0,0.1);cursor:pointer;transition:0.3s;}
+.filter-btn:hover{background:#C9A227;color:black;}
+.events{padding:40px 8%;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:30px;}
+.card{background:#1a1a1a;border-radius:20px;overflow:hidden;transition:0.3s;border:1px solid rgba(255,215,0,0.2);}
+.card:hover{transform:translateY(-10px);box-shadow:0 0 20px rgba(255,215,0,0.4);}
+.card img{width:100%;height:200px;object-fit:cover;}
+.card-content{padding:20px;}
+.card-content h3{color:#FFD700;}
+.price{margin:10px 0;font-weight:bold;color:#C9A227;}
+button{padding:10px;border:none;border-radius:10px;background:linear-gradient(45deg,#C9A227,#FFD700);color:black;font-weight:600;cursor:pointer;transition:0.3s;}
+button:hover{background:linear-gradient(45deg,#FFD700,#fff8dc);}
+footer{text-align:center;padding:20px;opacity:0.5;}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <h2>🎟 EventSphere</h2>
+  <input type="text" id="search" placeholder="Search luxury events...">
+</nav>
+
+<div class="auth-box" id="authSection">
+  <input id="name" placeholder="Name">
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+  <a href="bookings.html"><button>My Bookings</button></a>
+</div>
+
+<div id="welcome"></div>
+
+<section class="hero">
+  <h1>Experience Luxury Events</h1>
+  <p>Premium Event Lifecycle & VIP Ticketing Platform</p>
+</section>
+
+<div class="filters">
+  <div class="filter-btn" onclick="filterCategory('All')">All</div>
+  <div class="filter-btn" onclick="filterCategory('Concert')">Concerts</div>
+  <div class="filter-btn" onclick="filterCategory('Conference')">Conferences</div>
+  <div class="filter-btn" onclick="filterCategory('Sports')">Sports</div>
+</div>
+
+<section class="events" id="events"></section>
+
+<footer>© 2026 EventSphere | Luxury Edition</footer>
+
+<script>
+let allEvents=[];
+
+fetch("/api/user")
+.then(res=>res.json())
+.then(user=>{
+  if(user){
+    document.getElementById("authSection").style.display="none";
+    document.getElementById("welcome").innerHTML=
+      `Welcome, ${user.name} 
+       <button onclick="logout()">Logout</button>
+       <a href="bookings.html"><button>My Bookings</button></a>`;
+  }
+});
+
+fetch("/api/events")
+.then(res=>res.json())
+.then(data=>{allEvents=data;displayEvents(data);});
+
+function displayEvents(events){
+  const container=document.getElementById("events");
+  container.innerHTML="";
+  events.forEach(e=>{
+    container.innerHTML+=`
+      <div class="card">
+        <img src="${e.image}">
+        <div class="card-content">
+          <h3>${e.title}</h3>
+          <p>${e.location} | ${new Date(e.event_date).toLocaleString()}</p>
+          <p>${e.description}</p>
+          <div class="price">₹ ${e.price}</div>
+          <button onclick="book(${e.id})">Book VIP Ticket</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function filterCategory(category){
+  if(category==="All"){ displayEvents(allEvents); } 
+  else { displayEvents(allEvents.filter(e=>e.category===category)); }
+}
+
+document.getElementById("search").addEventListener("input",function(){
+  const value=this.value.toLowerCase();
+  displayEvents(allEvents.filter(e=>e.title.toLowerCase().includes(value)));
+});
+
+function register(){
+  fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    name:document.getElementById("name").value,
+    email:document.getElementById("email").value,
+    password:document.getElementById("password").value
+  })})
+  .then(res=>res.json())
+  .then(data=>alert(data.message));
+}
+
+function login(){
+  fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    email:document.getElementById("email").value,
+    password:document.getElementById("password").value
+  })})
+  .then(res=>res.json())
+  .then(data=>{
+    alert(data.message);
+    location.reload();
+  });
+}
+
+function logout(){
+  fetch("/api/logout")
+  .then(res=>res.json())
+  .then(data=>{
+    alert(data.message);
+    location.reload();
+  });
+}
+
+function book(id){
+  fetch("/api/book",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event_id:id})})
+  .then(res=>res.json())
+  .then(data=>{
+    alert(data.message);
+  });
+}
+</script>
+
+</body>
+</html>
